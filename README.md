@@ -1,2 +1,2 @@
-# IAVI
-This is a repository for final project in IAVI 2024 Fall
+# DRIDE: Drone Relative Identification of Distance using Embedded Light Sources (IAVI 2024 Fall)
+
