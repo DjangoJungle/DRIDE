@@ -5,6 +5,14 @@ import numpy as np
 with np.load('calibration.npz') as X:
     cameraMatrix, distCoeffs = [X[i] for i in ('cameraMatrix', 'distCoeffs')]
 
+
+
+points_3d = np.array([
+    [0, 0, 0],
+    [100, 0, 0],
+    [0, 100, 0],
+    [100, 100, 0],
+], dtype=np.float32)
 # 使用 solvePnP 求解相机的外部参数
 def solveDistance(points_2d, img):
     # 利用points_2d推出points_3d

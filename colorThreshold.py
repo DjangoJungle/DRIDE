@@ -30,15 +30,15 @@ def Light_Source_Detection(image, color_to_detect):
     # 根据选择的颜色设置HSV范围
     if color_to_detect == 'red':
         # 红色可能出现在HSV空间的两个区域
-        lower_red1 = np.array([0, 70, 100])
+        lower_red1 = np.array([0, 70, 150])
         upper_red1 = np.array([10, 255, 255])
-        lower_red2 = np.array([170, 70, 100])
+        lower_red2 = np.array([170, 70, 150])
         upper_red2 = np.array([180, 255, 255])
         mask1 = cv2.inRange(hsv, lower_red1, upper_red1)
         mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
         mask = cv2.bitwise_or(mask1, mask2)
     elif color_to_detect == 'blue':
-        lower_blue = np.array([100, 70, 100])
+        lower_blue = np.array([100, 70, 150])
         upper_blue = np.array([124, 255, 255])
         mask = cv2.inRange(hsv, lower_blue, upper_blue)
     elif color_to_detect == 'white':
