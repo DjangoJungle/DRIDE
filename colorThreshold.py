@@ -116,7 +116,7 @@ while camera.IsGrabbing():
                 [pos_blue[1][0]+pos_blue[1][2]/2, pos_blue[1][1]+pos_blue[1][3]/2],
                 [pos_red[1][0]+pos_red[1][2]/2, pos_red[1][1]+pos_red[1][3]/2],
             ], dtype=np.float32)
-            img = solveDistance(points_2d, img)
+            # img = solveDistance(points_2d, img)
         ''''''
         # 显示图像
         cv2.imshow('Light Source Detection', cv2.resize(
