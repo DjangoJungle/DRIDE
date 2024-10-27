@@ -18,7 +18,7 @@ converter.OutputBitAlignment = pylon.OutputBitAlignment_MsbAligned
 # 设置要检测的颜色：'red'、'white'、'blue'、'all'
 color_to_detect = 'red'  # 可以更改为您需要的颜色
 
-def Light_Source_Detection(image, color_to_detect):
+def Light_Source_Detection(img, color_to_detect, N):
     # img = image.GetArray()
 
     # 预处理：去噪
@@ -59,7 +59,6 @@ def Light_Source_Detection(image, color_to_detect):
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     #x, y, w, h = 0, 0, 0, 0
-    N = 2  # 您想要的点的数量
     points = []  # 用于存储中心点的列表
     # 绘制检测到的光源
     for cnt in sorted(contours, key=cv2.contourArea, reverse=True)[:N]:
@@ -82,14 +81,7 @@ def Light_Source_Detection(image, color_to_detect):
     if len(points) == 1:
         points.append(points[0])
 
-    return img, points
-
-def distance_to_camera(knownWidth, focalLength, perWidth):  
-    # compute and return the distance from the maker to the camera
-    # knownWidth is 实际距离, perWidth is 像素之间的距离
-    return (knownWidth * focalLength) / perWidth         
-
-
+    return img, points   
 
 last_pos_red = None
 last_pos_blue = None
@@ -100,11 +92,9 @@ while camera.IsGrabbing():
         # 获取图像数据
         img = converter.Convert(grabResult)
         img = img.GetArray()
-        img, pos_red = Light_Source_Detection(img, color_to_detect)
-        # print(pos_red)
-        img, pos_blue = Light_Source_Detection(img, 'blue')
-        # print(f"X方向相距{abs(pos_blue[0]-pos_red[0]+(pos_blue[2]-pos_red[2])/2)}")
-        # print(f"Y方向相距{abs(pos_blue[1]-pos_red[1]+(pos_blue[3]-pos_red[3])/2)}")
+        img, pos_red = Light_Source_Detection(img, 'red', 1)
+        img, pos_blue = Light_Source_Detection(img, 'blue', 1)
+        img, pos_white = Light_Source_Detection(img, 'white', 2)
         if not pos_red:
             pos_red = last_pos_red
         if not pos_blue:
@@ -114,16 +104,14 @@ while camera.IsGrabbing():
         last_pos_red = pos_red
         last_pos_blue = pos_blue
 
-        print(pos_blue)
-        print(pos_red)
         if pos_red and pos_blue:
             points_2d = np.array([
-                [pos_blue[0][0]+pos_blue[0][2]/2, pos_blue[0][1]+pos_blue[0][3]/2],
                 [pos_red[0][0]+pos_red[0][2]/2, pos_red[0][1]+pos_red[0][3]/2],
-                [pos_blue[1][0]+pos_blue[1][2]/2, pos_blue[1][1]+pos_blue[1][3]/2],
-                [pos_red[1][0]+pos_red[1][2]/2, pos_red[1][1]+pos_red[1][3]/2],
+                [pos_blue[0][0]+pos_blue[0][2]/2, pos_blue[0][1]+pos_blue[0][3]/2],
+                [pos_white[0][0]+pos_white[0][2]/2, pos_white[0][1]+pos_white[0][3]/2],
+                [pos_white[1][0]+pos_white[1][2]/2, pos_white[1][1]+pos_white[1][3]/2],
             ], dtype=np.float32)
-            img = solveDistance(points_2d, img)
+            # img = solveDistance(points_2d, img)
         ''''''
         # 显示图像
         cv2.imshow('Light Source Detection', cv2.resize(
