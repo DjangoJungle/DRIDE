@@ -82,14 +82,7 @@ def Light_Source_Detection(image, color_to_detect):
     if len(points) == 1:
         points.append(points[0])
 
-    return img, points
-
-def distance_to_camera(knownWidth, focalLength, perWidth):  
-    # compute and return the distance from the maker to the camera
-    # knownWidth is 实际距离, perWidth is 像素之间的距离
-    return (knownWidth * focalLength) / perWidth         
-
-
+    return img, points   
 
 last_pos_red = None
 last_pos_blue = None
@@ -114,8 +107,8 @@ while camera.IsGrabbing():
         last_pos_red = pos_red
         last_pos_blue = pos_blue
 
-        print(pos_blue)
-        print(pos_red)
+        # print(pos_blue)
+        # print(pos_red)
         if pos_red and pos_blue:
             points_2d = np.array([
                 [pos_blue[0][0]+pos_blue[0][2]/2, pos_blue[0][1]+pos_blue[0][3]/2],
