@@ -2,6 +2,7 @@ from pypylon import pylon
 import cv2
 import numpy as np
 from Distance import *
+from scipy.optimize import linear_sum_assignment
 
 # 创建摄像头实例并打开
 camera = pylon.InstantCamera(pylon.TlFactory.GetInstance().CreateFirstDevice())
@@ -15,8 +16,32 @@ converter = pylon.ImageFormatConverter()
 converter.OutputPixelFormat = pylon.PixelType_BGR8packed
 converter.OutputBitAlignment = pylon.OutputBitAlignment_MsbAligned
 
-# 设置要检测的颜色：'red'、'white'、'blue'、'all'
-color_to_detect = 'red'  # 可以更改为您需要的颜色
+def frameAmend(old_points_2d, new_points_2d):
+    error = 20
+
+    # 修正红色点
+    if abs(new_points_2d[0][0] - old_points_2d[0][0]) > error or abs(new_points_2d[0][1] - old_points_2d[0][1]) > error:
+        new_points_2d[0] = np.copy(old_points_2d[0])  # 使用 np.copy()
+
+    # 修正蓝色点
+    if abs(new_points_2d[1][0] - old_points_2d[1][0]) > error or abs(new_points_2d[1][1] - old_points_2d[1][1]) > error:
+        new_points_2d[1] = np.copy(old_points_2d[1])  # 使用 np.copy()
+
+    # 修正白色点，白色点在 new_points_2d[2] 和 new_points_2d[3]
+    distance_matrix = np.zeros((2, 2))
+    for i in range(2):
+        for j in range(2):
+            distance_matrix[i, j] = np.linalg.norm(new_points_2d[i + 2] - old_points_2d[j + 2])
+
+    row_ind, col_ind = linear_sum_assignment(distance_matrix)
+
+    for i in range(2):
+        if distance_matrix[row_ind[i], col_ind[i]] > error:
+            new_points_2d[row_ind[i] + 2] = np.copy(old_points_2d[col_ind[i] + 2])  # 使用 np.copy()
+
+    old_points_2d = np.copy(new_points_2d)
+
+    return old_points_2d, new_points_2d
 
 def Light_Source_Detection(img, color_to_detect, N):
     # img = image.GetArray()
@@ -83,8 +108,8 @@ def Light_Source_Detection(img, color_to_detect, N):
 
     return img, points   
 
-last_pos_red = None
-last_pos_blue = None
+cnt = 0
+old_points_2d = np.zeros(4, 2)
 # 主循环
 while camera.IsGrabbing():
     grabResult = camera.RetrieveResult(5000, pylon.TimeoutHandling_ThrowException)
@@ -95,23 +120,28 @@ while camera.IsGrabbing():
         img, pos_red = Light_Source_Detection(img, 'red', 1)
         img, pos_blue = Light_Source_Detection(img, 'blue', 1)
         img, pos_white = Light_Source_Detection(img, 'white', 2)
+        if cnt == 0 and (not pos_red or not pos_blue or len(pos_white) < 2):
+            # 如果第一帧就没有检测到符合条件的光源就重新检测
+            continue
         if not pos_red:
-            pos_red = last_pos_red
+            pos_red = old_points_2d[0]
         if not pos_blue:
-            pos_blue = last_pos_blue
+            pos_blue = old_points_2d[1]
+        if len(pos_white) < 2:
+            pos_white = [old_points_2d[2], old_points_2d[3]]
 
-        # 更新上一次的光源位置
-        last_pos_red = pos_red
-        last_pos_blue = pos_blue
+        points_2d = np.array([
+            [pos_red[0][0]+pos_red[0][2]/2, pos_red[0][1]+pos_red[0][3]/2],
+            [pos_blue[0][0]+pos_blue[0][2]/2, pos_blue[0][1]+pos_blue[0][3]/2],
+            [pos_white[0][0]+pos_white[0][2]/2, pos_white[0][1]+pos_white[0][3]/2],
+            [pos_white[1][0]+pos_white[1][2]/2, pos_white[1][1]+pos_white[1][3]/2],
+        ], dtype=np.float32)
+        if cnt == 0:
+            old_points_2d = np.copy(points_2d)
+            cnt = 1
 
-        if pos_red and pos_blue:
-            points_2d = np.array([
-                [pos_red[0][0]+pos_red[0][2]/2, pos_red[0][1]+pos_red[0][3]/2],
-                [pos_blue[0][0]+pos_blue[0][2]/2, pos_blue[0][1]+pos_blue[0][3]/2],
-                [pos_white[0][0]+pos_white[0][2]/2, pos_white[0][1]+pos_white[0][3]/2],
-                [pos_white[1][0]+pos_white[1][2]/2, pos_white[1][1]+pos_white[1][3]/2],
-            ], dtype=np.float32)
-            # img = solveDistance(points_2d, img)
+        old_points_2d, points_2d = frameAmend(old_points_2d, points_2d)
+        # img = solveDistance(points_2d, img)
         ''''''
         # 显示图像
         cv2.imshow('Light Source Detection', cv2.resize(
