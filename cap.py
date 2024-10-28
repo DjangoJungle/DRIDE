@@ -66,7 +66,7 @@ def Ycbcr422_to_rgb(ycbcr422):
 if __name__ == '__main__':
     time.sleep(0.5)
     folder_name = datetime.now().strftime("%Y-%m-%d_%H-%M")
-    save_root = os.path.join(os.getcwd(), f"{folder_name}/")
+    # save_root = os.path.join(os.getcwd(), f"{folder_name}/")
     exitCode = 0
     try:
         Img = pylon.PylonImage()
@@ -89,8 +89,8 @@ if __name__ == '__main__':
 
                 current_time = time.time()
                 if current_time - last_save_time >= 1:  # 检查是否已经过了一秒
-                    os.makedirs(save_root, exist_ok=True)
-                    filename = f"{save_root}/image_{image_count:04}.png"
+                    # os.makedirs(save_root, exist_ok=True)
+                    filename = f"./calibration/{image_count}.png"
                     Img.AttachGrabResultBuffer(grabResult)
                     Img.Save(pylon.ImageFileFormat_Png, filename)
                     image_count += 1
@@ -99,7 +99,7 @@ if __name__ == '__main__':
 
                 k = cv2.waitKey(1)
                 if k == ord('q') or k == ord('Q'):
-                    print(f"保存到 {save_root}")
+                    # print(f"保存到 {save_root}")
                     break
             else:
                 print("错误: ", grabResult.ErrorCode, grabResult.ErrorDescription)
