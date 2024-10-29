@@ -94,17 +94,17 @@ def Light_Source_Detection(img, color_to_detect, N):
         area = cv2.contourArea(cnt)
         if area > 300:  # 设置面积阈值，过滤掉小区域
             x, y, w, h = cv2.boundingRect(cnt)
-            center = (x + w // 2, y + h // 2)  # 计算中心点
+            # center = (x + w // 2, y + h // 2)  # 计算中心点
             points.append([x, y, w, h])  # 添加到点的列表中
-            cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)  # 绘制矩形框
-            cv2.circle(img, center, 5, (0, 0, 255), -1)
+            # cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)  # 绘制矩形框
+            # cv2.circle(img, center, 5, (0, 0, 255), -1)
 
-            font = cv2.FONT_HERSHEY_SIMPLEX
-            font_scale = 1
-            color = (0, 255, 0)  # 绿色
-            thickness = 2
-            # 绘制文本
-            cv2.putText(img, color_to_detect, center, font, font_scale, color, thickness)
+            # font = cv2.FONT_HERSHEY_SIMPLEX
+            # font_scale = 1
+            # color = (0, 255, 0)  # 绿色
+            # thickness = 2
+            # # 绘制文本
+            # cv2.putText(img, color_to_detect, center, font, font_scale, color, thickness)
     # 如果符合条件的轮廓只有一个，则添加一个相同的点
     if len(points) == 1:
         points.append(points[0])
@@ -153,6 +153,19 @@ def process_images():
                 cnt = 1
 
             old_points_2d, points_2d = frameAmend(old_points_2d, points_2d)
+
+            # 帧修正完以后再画框
+            w = 100
+            h = 100
+            for point in points_2d:
+                cv2.rectangle(img, (int(point['x']), int(point['y'])), (int(point['x']) + w, int(point['y']) + h), (0, 255, 0), 2)  # 绘制矩形框
+                font = cv2.FONT_HERSHEY_SIMPLEX
+                font_scale = 1
+                color = (0, 255, 0)  # 绿色
+                thickness = 2
+                # 绘制文本
+                cv2.putText(img, point['color'], (int(point['x'])+w//2, int(point['y'])+h//2), font, font_scale, color, thickness)
+
             img, pos = solveDistance(points_2d, img)
 
             # 将点放入队列

@@ -21,6 +21,12 @@ def init():
     ax.set_xlim3d([-20, 200])
     ax.set_ylim3d([-20, 200])
     ax.set_zlim3d([-20, 200])
+
+    # 设置轴标签
+    ax.set_xlabel('X Axis')
+    ax.set_ylabel('Y Axis')
+    ax.set_zlabel('Z Axis')
+    
     return []
 
 # 更新函数，每一帧都会调用
