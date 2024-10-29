@@ -3,6 +3,11 @@ import cv2
 import numpy as np
 from Distance import *
 from scipy.optimize import linear_sum_assignment
+import threading
+import queue
+
+# 定义一个队列用于线程间通信
+point_queue = queue.Queue()
 
 # 创建摄像头实例并打开
 camera = pylon.InstantCamera(pylon.TlFactory.GetInstance().CreateFirstDevice())
@@ -110,52 +115,68 @@ cnt = 0
 # 初始化 old_points_2d 为一个包含 4 个空字典的列表
 old_points_2d = [{'x': 0, 'y': 0, 'color': ''} for _ in range(4)]
 
-# 主循环
-while camera.IsGrabbing():
-    grabResult = camera.RetrieveResult(5000, pylon.TimeoutHandling_ThrowException)
-    if grabResult.GrabSucceeded():
-        # 获取图像数据
-        img = converter.Convert(grabResult)
-        img = img.GetArray()
-        img, pos_red = Light_Source_Detection(img, 'red', 1)
-        img, pos_blue = Light_Source_Detection(img, 'blue', 1)
-        img, pos_white = Light_Source_Detection(img, 'white', 2)
-        if cnt == 0 and (not pos_red or not pos_blue or len(pos_white) < 2):
-            # 如果第一帧就没有检测到符合条件的光源就重新检测
-            continue
-        if not pos_red:
-            pos_red = old_points_2d[0]
-        if not pos_blue:
-            pos_blue = old_points_2d[1]
-        if len(pos_white) < 2:
-            pos_white = [old_points_2d[2], old_points_2d[3]]
+# 图像处理线程
+def process_images():
+    global cnt, old_points_2d
+    while camera.IsGrabbing():
+        grabResult = camera.RetrieveResult(5000, pylon.TimeoutHandling_ThrowException)
+        if grabResult.GrabSucceeded():
+            # 获取图像数据
+            img = converter.Convert(grabResult)
+            img = img.GetArray()
+            img, pos_red = Light_Source_Detection(img, 'red', 1)
+            img, pos_blue = Light_Source_Detection(img, 'blue', 1)
+            img, pos_white = Light_Source_Detection(img, 'white', 2)
+            if cnt == 0 and (not pos_red or not pos_blue or len(pos_white) < 2):
+                # 如果第一帧就没有检测到符合条件的光源就重新检测
+                continue
+            if not pos_red:
+                pos_red = old_points_2d[0]
+            if not pos_blue:
+                pos_blue = old_points_2d[1]
+            if len(pos_white) < 2:
+                pos_white = [old_points_2d[2], old_points_2d[3]]
 
-        # 定义颜色编码
-        color_codes = {'red': 0, 'blue': 1, 'white': 2}
+            # 定义颜色编码
+            color_codes = {'red': 0, 'blue': 1, 'white': 2}
 
-        # 创建 points_2d，包含坐标和颜色信息
-        points_2d = [
-            {'x': pos_red[0][0] + pos_red[0][2] / 2, 'y': pos_red[0][1] + pos_red[0][3] / 2, 'color': 'red'},
-            {'x': pos_blue[0][0] + pos_blue[0][2] / 2, 'y': pos_blue[0][1] + pos_blue[0][3] / 2, 'color': 'blue'},
-            {'x': pos_white[0][0] + pos_white[0][2] / 2, 'y': pos_white[0][1] + pos_white[0][3] / 2, 'color': 'white'},
-            {'x': pos_white[1][0] + pos_white[1][2] / 2, 'y': pos_white[1][1] + pos_white[1][3] / 2, 'color': 'white'},
-        ]
+            # 创建 points_2d，包含坐标和颜色信息
+            points_2d = [
+                {'x': pos_red[0][0] + pos_red[0][2] / 2, 'y': pos_red[0][1] + pos_red[0][3] / 2, 'color': 'red'},
+                {'x': pos_blue[0][0] + pos_blue[0][2] / 2, 'y': pos_blue[0][1] + pos_blue[0][3] / 2, 'color': 'blue'},
+                {'x': pos_white[0][0] + pos_white[0][2] / 2, 'y': pos_white[0][1] + pos_white[0][3] / 2, 'color': 'white'},
+                {'x': pos_white[1][0] + pos_white[1][2] / 2, 'y': pos_white[1][1] + pos_white[1][3] / 2, 'color': 'white'},
+            ]
 
-        if cnt == 0:
-            old_points_2d = [pt.copy() for pt in points_2d]
-            cnt = 1
+            if cnt == 0:
+                old_points_2d = [pt.copy() for pt in points_2d]
+                cnt = 1
 
-        old_points_2d, points_2d = frameAmend(old_points_2d, points_2d)
-        img = solveDistance(points_2d, img)
-        # 显示图像
-        cv2.imshow('Light Source Detection', cv2.resize(
-                    img, None, None, fx=0.4, fy=0.4))
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+            old_points_2d, points_2d = frameAmend(old_points_2d, points_2d)
+            img = solveDistance(points_2d, img)
 
-    grabResult.Release()
+            # 将点放入队列
+            for point in points_2d:
+                point_queue.put((point['x'], point['y'], 0))  # 假设 z 坐标为 0
 
-# 释放资源
-camera.StopGrabbing()
-camera.Close()
-cv2.destroyAllWindows()
+            # 显示图像
+            cv2.imshow('Light Source Detection', cv2.resize(img, None, None, fx=0.4, fy=0.4))
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+        grabResult.Release()
+
+    # 释放资源
+    camera.StopGrabbing()
+    camera.Close()
+    cv2.destroyAllWindows()
+
+    # 释放资源
+    camera.StopGrabbing()
+    camera.Close()
+    cv2.destroyAllWindows()
+
+# 启动图像处理线程
+image_thread = threading.Thread(target=process_images)
+image_thread.daemon = True  # 设置为守护线程
+image_thread.start()
