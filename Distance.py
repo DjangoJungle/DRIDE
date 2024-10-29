@@ -66,11 +66,11 @@ def solveDistance(points_2d, img):
         
         # 计算相机和物品之间的距离
         distance = np.linalg.norm(tvec)
-        print(f"Distance from camera to the object: {distance:.2f} mm")
         tx, ty, tz = tvec.flatten() 
+        print(f"Distance from camera to the object: {distance:.2f} mm  tx: {tx:.2f}  ty: {ty:.2f}  tz: {tz:.2f}")
 
         font = cv2.FONT_HERSHEY_SIMPLEX
-        text = f"Distance: {distance / 10:.2f} cm"
+        text = f"Distance: {distance / 10:.2f} cm  height: {tx / 10: .2f} cm"
         org = (50, 50)  # 文字位置
         font_scale = 1
         color = (0, 255, 0)  # 绿色
@@ -79,4 +79,4 @@ def solveDistance(points_2d, img):
     else:
         print("solvePnP failed.")
     
-    return img, (tx, ty, tz)
+    return img, (tz, ty, tx)

@@ -22,7 +22,7 @@ converter.OutputPixelFormat = pylon.PixelType_BGR8packed
 converter.OutputBitAlignment = pylon.OutputBitAlignment_MsbAligned
 
 def frameAmend(old_points_2d, new_points_2d):
-    error = 20
+    error = 200
 
     # 修正红色点
     if abs(new_points_2d[0]['x'] - old_points_2d[0]['x']) > error or abs(new_points_2d[0]['y'] - old_points_2d[0]['y']) > error:
@@ -153,11 +153,11 @@ def process_images():
                 cnt = 1
 
             old_points_2d, points_2d = frameAmend(old_points_2d, points_2d)
-            img = solveDistance(points_2d, img)
+            img, pos = solveDistance(points_2d, img)
 
             # 将点放入队列
-            for point in points_2d:
-                point_queue.put((point['x'], point['y'], 0))  # 假设 z 坐标为 0
+            # for point in points_2d:
+            point_queue.put((pos[0], pos[1], pos[2]))  # 假设 z 坐标为 0
 
             # 显示图像
             cv2.imshow('Light Source Detection', cv2.resize(img, None, None, fx=0.4, fy=0.4))

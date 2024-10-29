@@ -18,9 +18,9 @@ ax = fig.add_subplot(111, projection='3d')
 
 # 初始化函数
 def init():
-    ax.set_xlim3d([-1000, 1000])
-    ax.set_ylim3d([-1000, 1000])
-    ax.set_zlim3d([-1000, 1000])
+    ax.set_xlim3d([-20, 200])
+    ax.set_ylim3d([-20, 200])
+    ax.set_zlim3d([-20, 200])
     return []
 
 # 更新函数，每一帧都会调用
@@ -35,9 +35,9 @@ def update(frame):
     ax.clear()
     
     # 重新设置坐标轴范围
-    ax.set_xlim3d([-1000, 1000])
-    ax.set_ylim3d([-1000, 1000])
-    ax.set_zlim3d([-1000, 1000])
+    ax.set_xlim3d([-20, 100])
+    ax.set_ylim3d([-20, 100])
+    ax.set_zlim3d([-20, 1000])
     
     # 绘制数据点
     if data:
