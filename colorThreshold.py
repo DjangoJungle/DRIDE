@@ -9,17 +9,17 @@ import queue
 # 定义一个队列用于线程间通信
 point_queue = queue.Queue()
 
-# 创建摄像头实例并打开
-camera = pylon.InstantCamera(pylon.TlFactory.GetInstance().CreateFirstDevice())
-camera.Open()
+# # 创建摄像头实例并打开
+# camera = pylon.InstantCamera(pylon.TlFactory.GetInstance().CreateFirstDevice())
+# camera.Open()
 
-# 开始抓取图像
-camera.StartGrabbing(pylon.GrabStrategy_LatestImageOnly)
-converter = pylon.ImageFormatConverter()
+# # 开始抓取图像
+# camera.StartGrabbing(pylon.GrabStrategy_LatestImageOnly)
+# converter = pylon.ImageFormatConverter()
 
-# 将图像格式转换为OpenCV的BGR格式
-converter.OutputPixelFormat = pylon.PixelType_BGR8packed
-converter.OutputBitAlignment = pylon.OutputBitAlignment_MsbAligned
+# # 将图像格式转换为OpenCV的BGR格式
+# converter.OutputPixelFormat = pylon.PixelType_BGR8packed
+# converter.OutputBitAlignment = pylon.OutputBitAlignment_MsbAligned
 
 def frameAmend(old_points_2d, new_points_2d):
     error = 200
@@ -111,12 +111,12 @@ def Light_Source_Detection(img, color_to_detect, N):
 
     return img, points
 
-cnt = 0
-# 初始化 old_points_2d 为一个包含 4 个空字典的列表
-old_points_2d = [{'x': 0, 'y': 0, 'color': ''} for _ in range(4)]
+# cnt = 0
+# # 初始化 old_points_2d 为一个包含 4 个空字典的列表
+# old_points_2d = [{'x': 0, 'y': 0, 'color': ''} for _ in range(4)]
 
 # 图像处理线程
-def process_images():
+def process_images(camera, converter):
     global cnt, old_points_2d
     while camera.IsGrabbing():
         grabResult = camera.RetrieveResult(5000, pylon.TimeoutHandling_ThrowException)
@@ -141,18 +141,21 @@ def process_images():
             color_codes = {'red': 0, 'blue': 1, 'white': 2}
 
             # 创建 points_2d，包含坐标和颜色信息
-            points_2d = [
-                {'x': pos_red[0][0] + pos_red[0][2] / 2, 'y': pos_red[0][1] + pos_red[0][3] / 2, 'color': 'red'},
-                {'x': pos_blue[0][0] + pos_blue[0][2] / 2, 'y': pos_blue[0][1] + pos_blue[0][3] / 2, 'color': 'blue'},
-                {'x': pos_white[0][0] + pos_white[0][2] / 2, 'y': pos_white[0][1] + pos_white[0][3] / 2, 'color': 'white'},
-                {'x': pos_white[1][0] + pos_white[1][2] / 2, 'y': pos_white[1][1] + pos_white[1][3] / 2, 'color': 'white'},
-            ]
+            try:
+                points_2d = [
+                    {'x': pos_red[0][0] + pos_red[0][2] / 2, 'y': pos_red[0][1] + pos_red[0][3] / 2, 'color': 'red'},
+                    {'x': pos_blue[0][0] + pos_blue[0][2] / 2, 'y': pos_blue[0][1] + pos_blue[0][3] / 2, 'color': 'blue'},
+                    {'x': pos_white[0][0] + pos_white[0][2] / 2, 'y': pos_white[0][1] + pos_white[0][3] / 2, 'color': 'white'},
+                    {'x': pos_white[1][0] + pos_white[1][2] / 2, 'y': pos_white[1][1] + pos_white[1][3] / 2, 'color': 'white'},
+                ]
+            except:
+                continue
 
             if cnt == 0:
                 old_points_2d = [pt.copy() for pt in points_2d]
                 cnt = 1
 
-            old_points_2d, points_2d = frameAmend(old_points_2d, points_2d)
+            # old_points_2d, points_2d = frameAmend(old_points_2d, points_2d)
 
             # 帧修正完以后再画框
             w = 100
@@ -170,7 +173,7 @@ def process_images():
 
             # 将点放入队列
             # for point in points_2d:
-            point_queue.put((pos[0], pos[1], pos[2]))  # 假设 z 坐标为 0
+            point_queue.put((pos[0], pos[1], pos[2]))
 
             # 显示图像
             cv2.imshow('Light Source Detection', cv2.resize(img, None, None, fx=0.4, fy=0.4))
@@ -184,12 +187,30 @@ def process_images():
     camera.Close()
     cv2.destroyAllWindows()
 
-    # 释放资源
-    camera.StopGrabbing()
-    camera.Close()
-    cv2.destroyAllWindows()
-
 # 启动图像处理线程
-image_thread = threading.Thread(target=process_images)
-image_thread.daemon = True  # 设置为守护线程
-image_thread.start()
+# 摄像机线程
+def cameraThread():
+    # 创建摄像头实例并打开
+    camera = pylon.InstantCamera(pylon.TlFactory.GetInstance().CreateFirstDevice())
+    camera.Open()
+
+    # 设置帧率为30fps
+    camera.AcquisitionFrameRateEnable = True
+    camera.AcquisitionFrameRate = 30
+
+    # 开始抓取图像
+    camera.StartGrabbing(pylon.GrabStrategy_LatestImageOnly)
+    converter = pylon.ImageFormatConverter()
+
+    # 将图像格式转换为OpenCV的BGR格式
+    converter.OutputPixelFormat = pylon.PixelType_BGR8packed
+    converter.OutputBitAlignment = pylon.OutputBitAlignment_MsbAligned
+
+    cnt = 0
+    # 初始化 old_points_2d 为一个包含 4 个空字典的列表
+    old_points_2d = [{'x': 0, 'y': 0, 'color': ''} for _ in range(4)]
+
+    process_images(camera, converter)
+
+# image_thread = threading.Thread(target=process_images)
+# image_thread.daemon = True  # 设置为守护线程

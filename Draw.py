@@ -9,15 +9,16 @@ from matplotlib.animation import FuncAnimation
 # 导入摄像头处理脚本中的队列
 from colorThreshold import point_queue
 
-# 数据列表用于存储点
-data = []
+# # 数据列表用于存储点
+# data = []
 
-# 设置图形界面
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
+# # 设置图形界面
+# fig = plt.figure()
+# ax = fig.add_subplot(111, projection='3d')
 
 # 初始化函数
 def init():
+    global ax
     ax.set_xlim3d([-20, 200])
     ax.set_ylim3d([-20, 200])
     ax.set_zlim3d([-20, 200])
@@ -31,7 +32,7 @@ def init():
 
 # 更新函数，每一帧都会调用
 def update(frame):
-    global data
+    global data, ax
     # 从队列中获取所有可用的点
     while not point_queue.empty():
         new_point = point_queue.get_nowait()
@@ -53,8 +54,16 @@ def update(frame):
     else:
         return []
 
-# 创建动画对象
-ani = FuncAnimation(fig, update, frames=np.arange(0, 100), init_func=init, blit=True)
+def DrawThread():
+    # 数据列表用于存储点
+    data = []
 
-# 显示图像
-plt.show()
+    # 设置图形界面
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    # 创建动画对象
+    ani = FuncAnimation(fig, update, frames=np.arange(0, 100), init_func=init, blit=True)
+    
+    # 显示图像
+    plt.show()

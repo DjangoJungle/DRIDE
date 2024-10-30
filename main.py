@@ -1,16 +1,16 @@
 import threading
 import sys
-from colorThreshold import image_thread, point_queue
-from Draw import ani, fig
+from colorThreshold import point_queue, cameraThread
+from Draw import DrawThread
 
 if __name__ == "__main__":
-    # 启动图像处理线程
-    image_thread.start()
-    
-    # 启动绘图线程
-    # plotting_thread = threading.Thread(target=plt.show)
-    # plotting_thread.daemon = True  # 设置为守护线程
-    # plotting_thread.start()
+    camera_thread = threading.Thread(target=cameraThread)
+    camera_thread.daemon = True  # 设置为守护线程
+    camera_thread.start()
+
+    draw_thread = threading.Thread(target=DrawThread)
+    draw_thread.daemon = True
+    draw_thread.start()
     
     # 保持主进程运行
     try:
@@ -21,5 +21,5 @@ if __name__ == "__main__":
         sys.exit(0)
     
     # 等待图像处理线程结束
-    image_thread.join()
-    # plotting_thread.join()
+    camera_thread.join()
+    draw_thread.join()
