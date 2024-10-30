@@ -5,6 +5,7 @@ from Distance import *
 from scipy.optimize import linear_sum_assignment
 import threading
 import queue
+from trackingapi import *
 
 # 定义一个队列用于线程间通信
 point_queue = queue.Queue()
@@ -38,8 +39,21 @@ def frameAmend(old_points_2d, new_points_2d):
 
     return old_points_2d, new_points_2d
 
-def Light_Source_Detection(img, color_to_detect, N):
+def Light_Source_Detection(img, color_to_detect, N, roi=None):
+    # 确保输入图像有效
+    # if img is None or img.size == 0:
+    #     print("Error: Input image is empty.")
+    #     return img, []
+
+    # # 提取ROI区域
+    # if roi is not None:
+    #     x, y, w, h = roi
+    #     img_roi = img[y:y+h, x:x+w]  # 提取ROI区域
+    # else:
+    #     img_roi = img  # 如果没有指定ROI，则使用整个图像
+
     # 预处理：去噪
+    # img_blur = cv2.GaussianBlur(img_roi, (5, 5), 0)
     img_blur = cv2.GaussianBlur(img, (5, 5), 0)
 
     # 转换为HSV颜色空间
@@ -47,7 +61,6 @@ def Light_Source_Detection(img, color_to_detect, N):
 
     # 根据选择的颜色设置HSV范围
     if color_to_detect == 'red':
-        # 红色可能出现在HSV空间的两个区域
         lower_red1 = np.array([0, 70, 150])
         upper_red1 = np.array([10, 255, 255])
         lower_red2 = np.array([170, 70, 150])
@@ -64,7 +77,6 @@ def Light_Source_Detection(img, color_to_detect, N):
         upper_white = np.array([180, 25, 255])
         mask = cv2.inRange(hsv, lower_white, upper_white)
     else:  # 'all'表示不限制颜色
-        # 假设高亮区域为光源
         lower_bright = np.array([0, 0, 200])
         upper_bright = np.array([180, 255, 255])
         mask = cv2.inRange(hsv, lower_bright, upper_bright)
@@ -77,9 +89,9 @@ def Light_Source_Detection(img, color_to_detect, N):
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     points = []  # 用于存储中心点的列表
-    # 绘制检测到的光源
     brightest_contour = None
     max_brightness = 0
+
     for cnt in sorted(contours, key=cv2.contourArea, reverse=True)[:N]:
         area = cv2.contourArea(cnt)
         if area > 300:  # 设置面积阈值，过滤掉小区域
@@ -88,18 +100,19 @@ def Light_Source_Detection(img, color_to_detect, N):
             mean_val = cv2.mean(hsv, mask=mask_contour)[2]  # 亮度通道 (V 通道)
 
             # 查找亮度最高的红蓝色轮廓
-            if color_to_detect == 'blue' or color_to_detect == 'red':
-                if mean_val > max_brightness:
-                    max_brightness = mean_val
+            if color_to_detect in ['blue', 'red'] and mean_val > max_brightness:
+                max_brightness = mean_val
             brightest_contour = cnt
-            
+
             x, y, w, h = cv2.boundingRect(brightest_contour)
-            points.append([x, y, w, h])  # 添加到点的列表中
+            points.append([x + (roi[0] if roi is not None else 0), y + (roi[1] if roi is not None else 0), w, h])
+
     # 如果符合条件的轮廓只有一个，则添加一个相同的点
     if len(points) == 1:
         points.append(points[0])
 
     return img, points
+
 
 # 图像处理线程
 def process_images(camera, converter):
@@ -112,6 +125,15 @@ def process_images(camera, converter):
             # 获取图像数据
             img = converter.Convert(grabResult)
             img = img.GetArray()
+            # if cnt == 0:
+            #     # tracker = cv2.TrackerMIL_create()
+            #     # bbox = (287, 23, 86, 320)
+            #     # Uncomment the line below to select a different bounding box
+            #     bbox = cv2.selectROI(img, False)
+            #     # Initialize tracker with first frame and bounding box
+            #     ok = tracker.init(img, bbox)
+            # track = tracking_a_frame(img)
+            # print(track)
             img, pos_red = Light_Source_Detection(img, 'red', 1)
             img, pos_blue = Light_Source_Detection(img, 'blue', 1)
             img, pos_white = Light_Source_Detection(img, 'white', 2)
@@ -174,8 +196,7 @@ def process_images(camera, converter):
     camera.Close()
     cv2.destroyAllWindows()
 
-# 启动图像处理线程
-# 摄像机线程
+# 启动图像处理线程 摄像机线程
 def cameraThread():
     # 创建摄像头实例并打开
     camera = pylon.InstantCamera(pylon.TlFactory.GetInstance().CreateFirstDevice())
@@ -193,11 +214,4 @@ def cameraThread():
     converter.OutputPixelFormat = pylon.PixelType_BGR8packed
     converter.OutputBitAlignment = pylon.OutputBitAlignment_MsbAligned
 
-    # cnt = 0
-    # # 初始化 old_points_2d 为一个包含 4 个空字典的列表
-    # old_points_2d = [{'x': 0, 'y': 0, 'color': ''} for _ in range(4)]
-
     process_images(camera, converter)
-
-# image_thread = threading.Thread(target=process_images)
-# image_thread.daemon = True  # 设置为守护线程

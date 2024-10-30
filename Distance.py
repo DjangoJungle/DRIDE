@@ -67,7 +67,7 @@ def solveDistance(points_2d, img):
         # 计算相机和物品之间的距离
         distance = np.linalg.norm(tvec)
         tx, ty, tz = tvec.flatten() 
-        print(f"Distance from camera to the object: {distance:.2f} mm  tx: {tx:.2f}  ty: {ty:.2f}  tz: {tz:.2f}")
+        # print(f"Distance from camera to the object: {distance:.2f} mm  tx: {tx:.2f}  ty: {ty:.2f}  tz: {tz:.2f}")
 
         font = cv2.FONT_HERSHEY_SIMPLEX
         text = f"Distance: {distance / 10:.2f} cm  height: {tx / 10: .2f} cm"

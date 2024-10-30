@@ -19,7 +19,7 @@ objp = np.zeros((chessboard_size[0] * chessboard_size[1], 3), np.float32)
 objp[:, :2] = np.mgrid[0:chessboard_size[0], 0:chessboard_size[1]].T.reshape(-1, 2) * square_size
 
 # 加载左右相机的棋盘格图像
-for i in range(15):  # 至少采集10对图像
+for i in range(16):  # 至少采集10对图像
     img = cv2.imread(f'./calibration/{i}.png', 0)
     
     # 检测左、右图像中的角点
