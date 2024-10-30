@@ -57,7 +57,7 @@ def Light_Source_Detection(img, color_to_detect, N):
         mask = cv2.bitwise_or(mask1, mask2)
     elif color_to_detect == 'blue':
         lower_blue = np.array([100, 70, 150])
-        upper_blue = np.array([124, 255, 255])
+        upper_blue = np.array([135, 255, 255])
         mask = cv2.inRange(hsv, lower_blue, upper_blue)
     elif color_to_detect == 'white':
         lower_white = np.array([0, 0, 200])
@@ -78,10 +78,22 @@ def Light_Source_Detection(img, color_to_detect, N):
 
     points = []  # 用于存储中心点的列表
     # 绘制检测到的光源
+    brightest_contour = None
+    max_brightness = 0
     for cnt in sorted(contours, key=cv2.contourArea, reverse=True)[:N]:
         area = cv2.contourArea(cnt)
         if area > 300:  # 设置面积阈值，过滤掉小区域
-            x, y, w, h = cv2.boundingRect(cnt)
+            mask_contour = np.zeros(mask.shape, np.uint8)
+            cv2.drawContours(mask_contour, [cnt], -1, 255, thickness=cv2.FILLED)
+            mean_val = cv2.mean(hsv, mask=mask_contour)[2]  # 亮度通道 (V 通道)
+
+            # 查找亮度最高的红蓝色轮廓
+            if color_to_detect == 'blue' or color_to_detect == 'red':
+                if mean_val > max_brightness:
+                    max_brightness = mean_val
+            brightest_contour = cnt
+            
+            x, y, w, h = cv2.boundingRect(brightest_contour)
             points.append([x, y, w, h])  # 添加到点的列表中
     # 如果符合条件的轮廓只有一个，则添加一个相同的点
     if len(points) == 1:
