@@ -9,18 +9,6 @@ import queue
 # 定义一个队列用于线程间通信
 point_queue = queue.Queue()
 
-# # 创建摄像头实例并打开
-# camera = pylon.InstantCamera(pylon.TlFactory.GetInstance().CreateFirstDevice())
-# camera.Open()
-
-# # 开始抓取图像
-# camera.StartGrabbing(pylon.GrabStrategy_LatestImageOnly)
-# converter = pylon.ImageFormatConverter()
-
-# # 将图像格式转换为OpenCV的BGR格式
-# converter.OutputPixelFormat = pylon.PixelType_BGR8packed
-# converter.OutputBitAlignment = pylon.OutputBitAlignment_MsbAligned
-
 def frameAmend(old_points_2d, new_points_2d):
     error = 200
 
@@ -94,30 +82,18 @@ def Light_Source_Detection(img, color_to_detect, N):
         area = cv2.contourArea(cnt)
         if area > 300:  # 设置面积阈值，过滤掉小区域
             x, y, w, h = cv2.boundingRect(cnt)
-            # center = (x + w // 2, y + h // 2)  # 计算中心点
             points.append([x, y, w, h])  # 添加到点的列表中
-            # cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)  # 绘制矩形框
-            # cv2.circle(img, center, 5, (0, 0, 255), -1)
-
-            # font = cv2.FONT_HERSHEY_SIMPLEX
-            # font_scale = 1
-            # color = (0, 255, 0)  # 绿色
-            # thickness = 2
-            # # 绘制文本
-            # cv2.putText(img, color_to_detect, center, font, font_scale, color, thickness)
     # 如果符合条件的轮廓只有一个，则添加一个相同的点
     if len(points) == 1:
         points.append(points[0])
 
     return img, points
 
-# cnt = 0
-# # 初始化 old_points_2d 为一个包含 4 个空字典的列表
-# old_points_2d = [{'x': 0, 'y': 0, 'color': ''} for _ in range(4)]
-
 # 图像处理线程
 def process_images(camera, converter):
-    global cnt, old_points_2d
+    cnt = 0
+    # # 初始化 old_points_2d 为一个包含 4 个空字典的列表
+    old_points_2d = [{'x': 0, 'y': 0, 'color': ''} for _ in range(4)]
     while camera.IsGrabbing():
         grabResult = camera.RetrieveResult(5000, pylon.TimeoutHandling_ThrowException)
         if grabResult.GrabSucceeded():
@@ -172,7 +148,6 @@ def process_images(camera, converter):
             img, pos = solveDistance(points_2d, img)
 
             # 将点放入队列
-            # for point in points_2d:
             point_queue.put((pos[0], pos[1], pos[2]))
 
             # 显示图像
@@ -195,8 +170,8 @@ def cameraThread():
     camera.Open()
 
     # 设置帧率为30fps
-    camera.AcquisitionFrameRateEnable = True
-    camera.AcquisitionFrameRate = 30
+    # camera.AcquisitionFrameRateEnable = True
+    # camera.AcquisitionFrameRate = 30
 
     # 开始抓取图像
     camera.StartGrabbing(pylon.GrabStrategy_LatestImageOnly)
@@ -206,9 +181,9 @@ def cameraThread():
     converter.OutputPixelFormat = pylon.PixelType_BGR8packed
     converter.OutputBitAlignment = pylon.OutputBitAlignment_MsbAligned
 
-    cnt = 0
-    # 初始化 old_points_2d 为一个包含 4 个空字典的列表
-    old_points_2d = [{'x': 0, 'y': 0, 'color': ''} for _ in range(4)]
+    # cnt = 0
+    # # 初始化 old_points_2d 为一个包含 4 个空字典的列表
+    # old_points_2d = [{'x': 0, 'y': 0, 'color': ''} for _ in range(4)]
 
     process_images(camera, converter)
 
