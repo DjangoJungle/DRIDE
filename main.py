@@ -32,9 +32,14 @@ def update(frame):
     ax.clear()
     
     # 重新设置坐标轴范围
-    ax.set_xlim3d([-20, 100])
-    ax.set_ylim3d([-20, 100])
-    ax.set_zlim3d([-20, 1000])
+    ax.set_xlim3d([-20, 20])
+    ax.set_ylim3d([-20, 20])
+    ax.set_zlim3d([-20, 300])
+
+    # 设置轴标签
+    ax.set_xlabel('X Axis')
+    ax.set_ylabel('Y Axis')
+    ax.set_zlabel('Z Axis')
     
     # 绘制数据点
     if data:

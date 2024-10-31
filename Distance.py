@@ -79,4 +79,4 @@ def solveDistance(points_2d, img):
     else:
         print("solvePnP failed.")
     
-    return img, (tz, ty, tx)
+    return img, (tz/10, ty/10, tx/10)
